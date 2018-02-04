@@ -30,7 +30,7 @@ Requires:       m2crypto
 Requires:       redis
 Requires:       python-redis
 Requires:       java-1.8.0-openjdk
-Requires:       eucalyptus-common-java-libs
+Requires:       eucalyptus-load-balancer-java-libs
 Requires:       python-netaddr
 Requires(pre):  %{_sbindir}/useradd
 Requires(post): chkconfig
