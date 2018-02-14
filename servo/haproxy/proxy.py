@@ -21,7 +21,8 @@ import servo.config as config
 import servo.ws
 from servo.floppy import FloppyCredential
 from listener import Listener
-import os, stat
+import os
+import stat
 import shutil
 import traceback
 import sys
@@ -31,16 +32,20 @@ from haproxy_process import HaproxyProcess
 CONF_FILE = os.path.join(config.RUN_ROOT, "euca_haproxy.conf")
 CONF_FILE_TEMPLATE = os.path.join(config.CONF_ROOT, "haproxy_template.conf")
 PID_PATH = os.path.join(config.pidroot, "haproxy.pid")
+
+
 def cleanup():
     try:
-       os.unlink(CONF_FILE)
-       servo.log.debug("old haproxy config file is deleted")
+        os.unlink(CONF_FILE)
+        servo.log.debug("old haproxy config file is deleted")
     except Exception, err: 
-       if os.path.exists(CONF_FILE):
-           servo.log.error("could not delete the old haproxy config: %s" % err) 
+        if os.path.exists(CONF_FILE):
+            servo.log.error("could not delete the old haproxy config: %s" % err)
+
 
 class ProxyError(Exception):
     pass
+
 
 class ProxyActionTransaction(object):
     def __init__(self, actions=[], listeners=[]):
@@ -55,70 +60,73 @@ class ProxyActionTransaction(object):
     def run(self):
         raise NotImplementedError 
 
+
 class ProxyActionDefaultTransaction(ProxyActionTransaction):
-     def __init__(self, actions, listeners=[]):
-         ProxyActionTransaction.__init__(self, actions, listeners)
+    def __init__(self, actions, listeners=[]):
+        ProxyActionTransaction.__init__(self, actions, listeners)
          
-     def run(self):
-         if not os.path.exists(CONF_FILE):
-             if os.path.exists(CONF_FILE_TEMPLATE): 
-                 shutil.copy2(CONF_FILE_TEMPLATE, CONF_FILE)
-             else:
-                 raise ProxyError("cannot find the haproxy template file")
-         # retain the existing config
-         conf_backup = '%s.backup' % CONF_FILE 
-         shutil.copy2(CONF_FILE, conf_backup)
+    def run(self):
+        if not os.path.exists(CONF_FILE):
+            if os.path.exists(CONF_FILE_TEMPLATE):
+                shutil.copy2(CONF_FILE_TEMPLATE, CONF_FILE)
+            else:
+                raise ProxyError("cannot find the haproxy template file")
+        # retain the existing config
+        conf_backup = '%s.backup' % CONF_FILE
+        shutil.copy2(CONF_FILE, conf_backup)
 
-         # update config files by ProxyAction
-         for action in self._actions:
-             try:
-                 servo.log.debug(action)
-                 action.run()  # will replace the haconfig file in-place
-             except Exception, err: 
-                 servo.log.error('Updating listeners failed: %s' % err)
-                 #copy the backup back to the original
-                 shutil.copy2(conf_backup, CONF_FILE)
-                 os.unlink(conf_backup)
-                 return False
+        # update config files by ProxyAction
+        for action in self._actions:
+            try:
+                servo.log.debug(action)
+                action.run()  # will replace the haconfig file in-place
+            except Exception, err:
+                servo.log.error('Updating listeners failed: %s' % err)
+                # copy the backup back to the original
+                shutil.copy2(conf_backup, CONF_FILE)
+                os.unlink(conf_backup)
+                return False
 
-         # kill and restart the haproxy process
-         proc = None
-         try:
-             proc = HaproxyProcess(haproxy_bin=config.HAPROXY_BIN, conf_file=CONF_FILE, pid_path=PID_PATH)
-             if proc.status() == HaproxyProcess.TERMINATED:
-                 proc.run() 
-                 servo.log.debug("new haproxy process started")
-             else:
-                 proc.restart()
-                 servo.log.debug("haproxy process restarted")
-         except Exception, err:
-             # if not, replace back to old config, restart the haproxy process (if still fails, that's bad!) 
-             try:
-                 if proc is not None:
-                     proc.terminate()
-             except:
-                 pass
-             num_listeners = len(self._listeners)
-             for action in self._actions:
-                 if isinstance(action, ProxyRemove): 
-                     num_listeners-=1
-                 elif isinstance(action, ProxyCreate):
-                     num_listeners+=1
-             if num_listeners <= 0:
-                 return True # haproxy would fail when there is no remaining listeners
+        # kill and restart the haproxy process
+        proc = None
+        try:
+            proc = HaproxyProcess(haproxy_bin=config.HAPROXY_BIN, conf_file=CONF_FILE, pid_path=PID_PATH)
+            if proc.status() == HaproxyProcess.TERMINATED:
+                proc.run()
+                servo.log.debug("new haproxy process started")
+            else:
+                proc.restart()
+                servo.log.debug("haproxy process restarted")
+        except Exception, err:
+            # if not, replace back to old config, restart the haproxy process (if still fails, that's bad!)
+            try:
+                if proc is not None:
+                    proc.terminate()
+            except Exception:
+                pass
+            num_listeners = len(self._listeners)
+            for action in self._actions:
+                if isinstance(action, ProxyRemove):
+                    num_listeners -= 1
+                elif isinstance(action, ProxyCreate):
+                    num_listeners += 1
+            if num_listeners <= 0:
+                return True  # haproxy would fail when there is no remaining listeners
  
-             traceback.print_exc(file=sys.stdout)
-             servo.log.error('failed to run haproxy process: %s' % err)
-             servo.log.debug('old haproxy config is in %s' % conf_backup)
-             return False
+            traceback.print_exc(file=sys.stdout)
+            servo.log.error('failed to run haproxy process: %s' % err)
+            servo.log.debug('old haproxy config is in %s' % conf_backup)
+            return False
         
-         os.unlink(conf_backup)
-         return True
+        os.unlink(conf_backup)
+        return True
+
 
 class ProxyAction(object):
     STATUS_PENDING = 0
     STATUS_DONE = 1
     STATUS_ERROR = 2
+
     def __init__(self):
         pass
 
@@ -127,6 +135,7 @@ class ProxyAction(object):
 
     def status(self):
         raise NotImplementedError
+
 
 class ProxyCreate(ProxyAction):
     def __init__(self, listener):
@@ -141,17 +150,19 @@ class ProxyCreate(ProxyAction):
         # update config
         # replace the config
         
-        #def add(self, protocol, port, instances=[]):
-        #instance = {hostname , port, protocol=None )
+        # def add(self, protocol, port, instances=[]):
+        # instance = {hostname , port, protocol=None )
         builder = ConfBuilderHaproxy(CONF_FILE, self.__listener.loadbalancer()) 
         instances = []
 
         for host in self.__listener.instances():
-            instance = {'hostname':host, 'port': self.__listener.instance_port(), 'protocol': self.__listener.instance_protocol()}
+            instance = {'hostname': host, 'port': self.__listener.instance_port(),
+                        'protocol': self.__listener.instance_protocol()}
             instances.append(instance)
 
-        #in case of https/ssl protocol, download server certificate from EUARE
-        if (self.__listener.protocol() == 'https' or self.__listener.protocol() == 'ssl') and self.__listener.ssl_cert_arn() != None:
+        # in case of https/ssl protocol, download server certificate from EUARE
+        if (self.__listener.protocol() == 'https' or self.__listener.protocol() == 'ssl') and \
+                self.__listener.ssl_cert_arn() is not None:
             try:
                 f = FloppyCredential() 
             except Exception, err:
@@ -161,9 +172,11 @@ class ProxyCreate(ProxyAction):
                 access_key_id = config.get_access_key_id()
                 secret_access_key = config.get_secret_access_key()
                 security_token = config.get_security_token()
-                con = servo.ws.connect_euare(aws_access_key_id = access_key_id, aws_secret_access_key=secret_access_key, security_token=security_token)
+                con = servo.ws.connect_euare(aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key,
+                                             security_token=security_token)
                 cert_arn = self.__listener.ssl_cert_arn().strip()
-                cert= con.download_server_certificate(f.get_instance_pub_key(), f.get_instance_pk(), f.get_iam_pub_key(), f.get_iam_token(), cert_arn)
+                cert = con.download_server_certificate(f.get_instance_pub_key(), f.get_instance_pk(),
+                                                       f.get_iam_pub_key(), f.get_iam_token(), cert_arn)
             except Exception, err:
                 raise Exception('failed to download the server certificate: %s' % err)
 
@@ -181,7 +194,7 @@ class ProxyCreate(ProxyAction):
                 if not os.path.exists(cert_file):
                     f_cert = open(cert_file, 'w')
                     f_cert.write(cert.get_certificate())
-                    f_cert.write("\n");
+                    f_cert.write("\n")
                     f_cert.write(cert.get_private_key())
                     f_cert.close()
                     os.chmod(cert_file, 400)
@@ -191,12 +204,28 @@ class ProxyCreate(ProxyAction):
                 raise Exception('failed to create the server certificate files: %s' % err)
         
         try: 
-            comment=None
+            comment = None
             if self.__listener.loadbalancer() is not None:
-                comment="lb-%s" % self.__listener.loadbalancer()
-            builder.add(protocol=self.__listener.protocol(), port=self.__listener.port(), instances=instances, policies = self.__listener.policies(), cert=self.__listener.ssl_cert_path(), comment=comment, connection_idle_timeout = self.__listener.connection_idle_timeout()).build(CONF_FILE)
+                comment = "lb-%s" % self.__listener.loadbalancer()
+            ip_addresses = []
+            macs = config.get_macs()
+            if macs:
+                for mac in macs:
+                    ip = config.get_private_ip(mac)
+                    if ip is not None:
+                        ip_addresses.append(ip)
+            if not ip_addresses:
+                ip = config.get_private_ip()
+                if ip is None:
+                    ip_addresses.append('0.0.0.0')
+                else:
+                    ip_addresses.append(ip)
+            builder.add(protocol=self.__listener.protocol(), ips=ip_addresses, port=self.__listener.port(),
+                        instances=instances, policies=self.__listener.policies(),
+                        cert=self.__listener.ssl_cert_path(), comment=comment,
+                        connection_idle_timeout=self.__listener.connection_idle_timeout()).build(CONF_FILE)
         except Exception, err:
-            self.__status =ProxyAction.STATUS_ERROR
+            self.__status = ProxyAction.STATUS_ERROR
             raise Exception('failed to add new frontend to the config: %s' % err)
         self.__status = ProxyAction.STATUS_DONE
 
@@ -209,19 +238,21 @@ class ProxyCreate(ProxyAction):
     def __str__(self):
         return self.__repr__()
 
+
 class ProxyRemove(ProxyAction):
     def __init__(self, listener):
         if not isinstance(listener, Listener):
             raise TypeError 
         self.__listener = listener
         self.__status = ProxyAction.STATUS_PENDING 
+
     def run(self):
         builder = ConfBuilderHaproxy(CONF_FILE)
         portToRemove = self.__listener.port()
         try: 
             builder.remove_protocol_port(portToRemove).build(CONF_FILE)
         except Exception, err:
-            self.__status =ProxyAction.STATUS_ERROR
+            self.__status = ProxyAction.STATUS_ERROR
             raise Exception("failed to remove the port from the haproxy config: %s" % err)
         self.__status = ProxyAction.STATUS_DONE
 
@@ -234,6 +265,7 @@ class ProxyRemove(ProxyAction):
     def status(self):
         return self.__status
 
+
 class ProxyAddInstance(ProxyAction):
     def __init__(self, instance):
         self.instance = instance
@@ -243,6 +275,7 @@ class ProxyAddInstance(ProxyAction):
     
     def status(self):
         pass
+
 
 class ProxyRemoveInstance(ProxyAction):
     def __init__(self, instance):
