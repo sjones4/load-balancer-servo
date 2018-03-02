@@ -16,7 +16,7 @@
 # CA 93117, USA or visit http://www.eucalyptus.com/licenses/ if you need
 # additional information or have any questions.
 
-#haproxy -f haproxy.conf -p /var/run/haproxy.pid -V -D -sf $(</var/run/haproxy.pid)
+# haproxy -f haproxy.conf -p /var/run/haproxy.pid -V -D -sf $(</var/run/haproxy.pid)
 import os
 import subprocess
 import commands
@@ -24,13 +24,14 @@ import servo
 from servo.util import ServoError
 from servo.config import SUDO_BIN, RUN_ROOT
 
+
 class HaproxyProcess(object):
-    RUNNING=0
-    TERMINATED=1
+    RUNNING = 0
+    TERMINATED = 1
 
     def __init__(self, haproxy_bin='/usr/local/sbin/haproxy', conf_file=None, pid_path=None):
-        self.__conf_file=conf_file
-        self.__pid_path=pid_path
+        self.__conf_file = conf_file
+        self.__pid_path = pid_path
         self.__haproxy_bin = haproxy_bin
         if not os.path.exists(haproxy_bin):
             raise ServoError("%s not found in the system" % haproxy_bin)
@@ -47,7 +48,7 @@ class HaproxyProcess(object):
             raise ServoError("haproxy already running")
 
         haproxy_cmd = '%s -f %s -p %s -V -C %s -D' % (self.__haproxy_bin, self.__conf_file,
-                                                          self.__pid_path, RUN_ROOT)
+                                                      self.__pid_path, RUN_ROOT)
 
         if servo.run_as_sudo(haproxy_cmd) != 0:
             raise ServoError("failed to launch haproxy process")
@@ -69,7 +70,7 @@ class HaproxyProcess(object):
             servo.log.warning('on restart, no running haproxy process found')
 
         haproxy_cmd = '%s -f %s -p %s -V -C %s -D -sf %s)' % (self.__haproxy_bin, self.__conf_file,
-                                                                     self.__pid_path, RUN_ROOT, self.get_pid())
+                                                              self.__pid_path, RUN_ROOT, self.get_pid())
 
         if servo.run_as_sudo(haproxy_cmd) != 0:
             raise ServoError("failed to restart haproxy process")

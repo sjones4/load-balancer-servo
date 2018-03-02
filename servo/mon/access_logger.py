@@ -31,11 +31,12 @@ import subprocess
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 
+
 class AccessLogger(threading.Thread):
     def __init__(self):
         self.running = True
         threading.Thread.__init__(self)
-        self.emit_interval = 60 # in minute
+        self.emit_interval = 60  # in minute
         self.bucket_name = None
         self.bucket_prefix = None
         self.enabled = False
@@ -99,7 +100,7 @@ class AccessLogger(threading.Thread):
         try:
             if not fd:
                 fd = os.open(file_path, os.O_APPEND | os.O_WRONLY | os.O_CREAT)
-	    for line in self._logs:
+            for line in self._logs:
                 os.write(fd, line+'\n')
             os.close(fd)
             fd = None
@@ -115,7 +116,10 @@ class AccessLogger(threading.Thread):
         aws_access_key_id = config.get_access_key_id()
         aws_secret_access_key = config.get_secret_access_key()
         security_token = config.get_security_token()
-        conn = boto.connect_s3(aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key, security_token=security_token, is_secure=False, port=config.get_webservice_port(), path='/services/objectstorage', host= config.get_objectstorage_service_host(), calling_format='boto.s3.connection.OrdinaryCallingFormat')
+        conn = boto.connect_s3(aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key,
+                               security_token=security_token, is_secure=False, port=config.get_webservice_port(),
+                               path='/services/objectstorage', host=config.get_objectstorage_service_host(),
+                               calling_format='boto.s3.connection.OrdinaryCallingFormat')
         if not conn:
             raise Exception('Could not connect to object storage (S3) service') 
 
@@ -124,7 +128,8 @@ class AccessLogger(threading.Thread):
         k = Key(bucket)
         k.key = key_name
         k.set_contents_from_filename(tmpfile_path, policy='bucket-owner-full-control')
-        servo.log.debug('Access logs were emitted successfully: s3://%s/%s'  % (urllib2.quote(self.bucket_name),urllib2.quote(key_name)))
+        servo.log.debug('Access logs were emitted successfully: s3://%s/%s' % (urllib2.quote(self.bucket_name),
+                                                                               urllib2.quote(key_name)))
 
     def get_accesslog_ip(self):
         try:
@@ -165,13 +170,16 @@ class AccessLogger(threading.Thread):
         name = ''
         if self.bucket_prefix:
             name = self.bucket_prefix+'/'
-        #{Bucket}/{Prefix}/AWSLogs/{AWS AccountID}/elasticloadbalancing/{Region}/{Year}/{Month}/{Day}/{AWS Account ID}_elasticloadbalancing_{Region}_{Load Balancer Name}_{End Time}_{Load Balancer IP}_{Random String}.log
-        #S3://mylogsbucket/myapp/prod/AWSLogs/123456789012/elasticloadbalancing/us-east-1/2014/02/15/123456789012_elasticloadbalancing_us-east-1_my-test-loadbalancer_20140215T2340Z_172.160.001.192_20sg8hgm.log
+        # {Bucket}/{Prefix}/AWSLogs/{AWS AccountID}/elasticloadbalancing/{Region}/{Year}/{Month}/{Day}/{AWS Account ID}_elasticloadbalancing_{Region}_{Load Balancer Name}_{End Time}_{Load Balancer IP}_{Random String}.log
+        # S3://mylogsbucket/myapp/prod/AWSLogs/123456789012/elasticloadbalancing/us-east-1/2014/02/15/123456789012_elasticloadbalancing_us-east-1_my-test-loadbalancer_20140215T2340Z_172.160.001.192_20sg8hgm.log
         now = dt.utcnow()
         ip_addr = self.get_accesslog_ip()
         if not ip_addr:
             ip_addr = '127.0.0.1'
-        name = name + 'AWSLogs/' + config.get_owner_account_id() + '/elasticloadbalancing/eucalyptus/'+str(now.year)+'/'+str(now.month)+'/'+str(now.day)+'/'+config.get_owner_account_id()+'_elasticloadbalancing_eucalyptus_'+self.loadbalancer+'_'+now.strftime('%Y%m%dT%H%MZ')+'_'+ip_addr+'_'+''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) +'.log'
+        name = name + 'AWSLogs/' + config.get_owner_account_id() + '/elasticloadbalancing/eucalyptus/' + str(now.year)\
+            + '/' + str(now.month) + '/' + str(now.day) + '/' + config.get_owner_account_id()\
+            + '_elasticloadbalancing_eucalyptus_' + self.loadbalancer + '_' + now.strftime('%Y%m%dT%H%MZ') + '_'\
+            + ip_addr + '_' + ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) + '.log'
         return name
 
     def add_log(self, log):
