@@ -56,30 +56,33 @@ class HaproxyProcess(object):
         self.__status = HaproxyProcess.RUNNING
 
     def terminate(self):
-        kill_cmd = 'kill -9 %s' % self.get_pid()
+        pids = self.get_pids()
 
-        if os.path.isfile(self.__pid_path):
+        for pid in pids:
+            kill_cmd = 'kill -9 %s' % pid
             servo.run_as_sudo(kill_cmd)
 
         if self.check_haproxy_process() == 0:
             raise ServoError("haproxy still running")
+
         self.__status = HaproxyProcess.TERMINATED
  
     def restart(self):
-        if self.check_haproxy_process() != 0:
+        pids = self.get_pids()
+        if not pids:
             servo.log.warning('on restart, no running haproxy process found')
 
-        haproxy_cmd = '%s -f %s -p %s -V -C %s -D -sf %s)' % (self.__haproxy_bin, self.__conf_file,
-                                                              self.__pid_path, RUN_ROOT, self.get_pid())
+        haproxy_cmd = '%s -f %s -p %s -V -C %s -D -sf %s' % (self.__haproxy_bin, self.__conf_file,
+                                                             self.__pid_path, RUN_ROOT, " ".join(pids))
 
         if servo.run_as_sudo(haproxy_cmd) != 0:
             raise ServoError("failed to restart haproxy process")
 
         self.__status = HaproxyProcess.RUNNING
  
-    def get_pid(self):
+    def get_pids(self):
         proc = subprocess.Popen(['ps', '-C', 'haproxy'], stdout=subprocess.PIPE)
-        pid = None
+        pids = []
         if not (proc and proc.stdout):
             raise ServoError("Failed to obtain haproxy's process id using ps")
         else:
@@ -89,11 +92,10 @@ class HaproxyProcess(object):
                     break
                 elif line.find('haproxy') >= 0:
                     tokens = line.split()
-                    pid = tokens[0]
-                    break 
-        if not pid:
+                    pids.append(tokens[0])
+        if not pids:
             raise ServoError("No pid is found for haproxy process")
-        return pid
+        return pids
 
     def check_haproxy_process(self):
         proc = subprocess.Popen(['ps', '-C', 'haproxy'], stderr=subprocess.PIPE)
