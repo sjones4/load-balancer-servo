@@ -1,7 +1,7 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 
 Name:           load-balancer-servo
-Version:        1.4.1
+Version:        1.4.2
 Release:        0%{?build_id:.%build_id}%{?dist}
 Summary:        Configuration tool for the Eucalyptus LB
 
@@ -107,6 +107,9 @@ fi
 %{_tmpfilesdir}/%{name}.conf
 
 %changelog
+* Mon May 14 2018 Steve Jones <steve.jones@appscale.com> - 1.4.2
+- Version bump (1.4.2)
+
 * Mon May  8 2017 Garrett Holmstrom <gholms@dxc.com> - 1.4.1
 - Version bump (1.4.1)
 
