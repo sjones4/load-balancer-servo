@@ -27,7 +27,7 @@ CONF_ROOT = "/etc/load-balancer-servo"
 RUN_ROOT = "/var/lib/load-balancer-servo"
 HAPROXY_BIN = "/usr/sbin/haproxy"
 SUDO_BIN = "/usr/bin/sudo"
-CW_LISTENER_DOM_SOCKET ='/var/lib/load-balancer-servo/haproxy.sock'
+CW_LISTENER_DOM_SOCKET = '/var/lib/load-balancer-servo/haproxy.sock'
 FLOPPY_MOUNT_DIR = RUN_ROOT+"/floppy"
 CONNECTION_IDLE_TIMEOUT = 60
 CONFIG_FILE = CONF_ROOT + "/servo.conf"
@@ -38,6 +38,11 @@ pidroot = DEFAULT_PID_ROOT
 boto_config = None
 cred_provider = None
 
+user_data_store = {}
+__availability_zone = None
+__servo_id = None
+
+
 def get_provider():
     global boto_config
     global cred_provider
@@ -47,11 +52,13 @@ def get_provider():
         cred_provider = boto.provider.get_default()
     return cred_provider
 
+
 def set_boto_config(filename):
     if not os.path.isfile(filename):
         raise Exception('could not find boto config {0}'.format(filename))
     global boto_config
     boto_config = filename
+
 
 # Update pidfile and pidroot variables in global scope.
 # This is called if the user has chosen to use a custom
@@ -61,8 +68,6 @@ def set_pidfile(filename):
     global pidroot
     pidfile = filename
     pidroot = os.path.dirname(pidfile)
-
-user_data_store={}  
 
 
 def read_config_file():
@@ -81,57 +86,74 @@ def read_config_file():
 
 def get_value(key):
     if key in user_data_store:
-       return user_data_store[key]
+        return user_data_store[key]
     else:
         read_config_file()
         if key not in user_data_store:
-            raise Exception('could not find %s' % key) 
+            raise Exception('could not find %s' % key)
         return user_data_store[key]
 
-def get_access_key_id(): 
+
+def get_access_key_id():
     akey = get_provider().get_access_key()
     return akey
+
 
 def get_secret_access_key():
     skey = get_provider().get_secret_key()
     return skey
 
+
 def get_security_token():
     token = get_provider().get_security_token()
     return token
 
-###### DEPRECATED ########
+
+#
+# DEPRECATED
+#
 def get_clc_host():
     return '169.254.169.254'
 
+
 def get_clc_port():
-    val=get_value('eucalyptus_port')
+    val = get_value('eucalyptus_port')
     if val is not None:
         return int(val)
     else:
         return val
 
+
 def get_ec2_path():
     return get_value('eucalyptus_path')
-###### END DEPRECATED #######
+#
+# END DEPRECATED
+#
+
 
 def get_elb_service_url():
     return get_value('elb_service_url')
 
+
 def get_euare_service_url():
     return get_value('euare_service_url')
+
 
 def get_objectstorage_service_host():
     return get_value('objectstorage_service_url')
 
+
 def get_swf_service_url():
     return get_value('simpleworkflow_service_url')
+
 
 def get_owner_account_id():
     return get_value('loadbalancer_owner_account')
 
+
 def get_ntp_server_url():
     return get_value('ntp_server')
+
 
 def get_webservice_port():
     try:
@@ -139,7 +161,7 @@ def get_webservice_port():
     except Exception, err:
         return 8773
 
-__availability_zone = None
+
 def get_availability_zone():
     global __availability_zone
     if __availability_zone is None:
@@ -149,9 +171,9 @@ def get_availability_zone():
         __availability_zone = content
     return __availability_zone
 
-__servo_id = None
+
 def get_servo_id():
-    global __servo_id 
+    global __servo_id
     if __servo_id is None:
         resp, content = httplib2.Http().request("http://169.254.169.254/latest/meta-data/instance-id")
         if resp['status'] != '200' or len(content) <= 0:
@@ -159,35 +181,51 @@ def get_servo_id():
         __servo_id = content
     return __servo_id
 
+
+def get_macs():
+    try:
+        resp, content = httplib2.Http().request("http://169.254.169.254/latest/meta-data/network/interfaces/macs/")
+        if resp['status'] == '200' and len(content) > 0:
+            return content.replace('/', '').split()
+    except Exception, err:
+        return None
+    return None
+
+
 def get_public_ip(mac=None):
     try:
         if mac is None:
             resp, content = httplib2.Http().request("http://169.254.169.254/latest/meta-data/public-ipv4")
         else:
-            resp, content = httplib2.Http().request("http://169.254.169.254/latest/meta-data/network/interfaces/macs/%s/public-ipv4s" % mac)
+            resp, content = httplib2.Http().request(
+                "http://169.254.169.254/latest/meta-data/network/interfaces/macs/%s/public-ipv4s" % mac)
         if resp['status'] == '200' and len(content) > 0:
             return content
     except Exception, err:
         return None
     return None
+
 
 def get_private_ip(mac=None):
     try:
         if mac is None:
             resp, content = httplib2.Http().request("http://169.254.169.254/latest/meta-data/local-ipv4")
         else:
-            resp, content = httplib2.Http().request("http://169.254.169.254/latest/meta-data/network/interfaces/macs/%s/local-ipv4s" % mac)
+            resp, content = httplib2.Http().request(
+                "http://169.254.169.254/latest/meta-data/network/interfaces/macs/%s/local-ipv4s" % mac)
         if resp['status'] == '200' and len(content) > 0:
             return content
     except Exception, err:
         return None
     return None
 
+
 def appcookie_length():
     return 4096
+
 
 def appcookie_timeout():
     try:
         return 60*int(get_value('app-cookie-duration'))
     except Exception, err:
-        return 60*24 #24 hours
+        return 60*24  # 24 hours
