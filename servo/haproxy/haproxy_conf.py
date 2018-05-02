@@ -38,7 +38,7 @@ class ConfBuilder(object):
             f.close()
         except Exception, err:
             servo.log.error('failed to open file %s' % source)
- 
+
     def build(self, destination=None):
         raise NotImplementedError
 
@@ -55,7 +55,7 @@ class ConfBuilder(object):
 
     def add_protocol_port(self, ip, protocol, port, policies, cert=None, comment=None, connection_idle_timeout=None):
         raise NotImplementedError
-  
+
     def remove_protocol_port(self, port):
         raise NotImplementedError
 
@@ -81,7 +81,7 @@ class ConfBuilderHaproxy(ConfBuilder):
 
     def build(self, destination=None):
         lines = []
-        
+
         for prefix in section_name_prefix[:3]:  # assuming one-to-one mapping from prefix to config section
             section_name = None
             section_contents = None
@@ -91,7 +91,7 @@ class ConfBuilderHaproxy(ConfBuilder):
                     section_contents = self.__content_map[section_name]
             if section_contents is not None:
                 lines.append('%s\n' % section_name)
-                lines.extend(['  %s\n' % line for line in section_contents])  
+                lines.extend(['  %s\n' % line for line in section_contents])
                 lines.append('\n')
 
         frontends = [key for key in self.__content_map.iterkeys() if key.startswith('frontend')]
@@ -100,12 +100,12 @@ class ConfBuilderHaproxy(ConfBuilder):
             lines.append('%s\n' % fe)
             lines.extend(['  %s\n' % line for line in self.__content_map[fe]])
             lines.append('\n')
-        
+
         for be in backends:
             lines.append('%s\n' % be)
             lines.extend(['  %s\n' % line for line in self.__content_map[be]])
             lines.append('\n')
-     
+
         if destination is None:
             return ''.join(lines)
         try:
@@ -124,7 +124,7 @@ class ConfBuilderHaproxy(ConfBuilder):
         line = line.strip(' ')
         if len(line.split(delimiter)) == 2:
             return line.split(delimiter)[0], line.split(delimiter)[1]
-    
+
     def find_frontend(self, port):
         section_name = None
         section = []
@@ -158,7 +158,7 @@ class ConfBuilderHaproxy(ConfBuilder):
             key = key.strip(' ')
             if key.startswith('frontend') and key.endswith('-%s' % port):
                 raise Exception('the port is found')
-            
+
         section_name = 'frontend %s-%s' % (protocol, port)
         if section_name not in self.__content_map.iterkeys():
             self.__content_map[section_name] = []
@@ -180,7 +180,7 @@ class ConfBuilderHaproxy(ConfBuilder):
                 if ConfBuilderHaproxy.ssl_v3(policies) is False:
                     sslv_setting = '%s no-sslv3' % sslv_setting
                 if ConfBuilderHaproxy.tls_v1(policies) is False:
-                    sslv_setting = '%s no-tlsv10' % sslv_setting 
+                    sslv_setting = '%s no-tlsv10' % sslv_setting
                 if ConfBuilderHaproxy.tls_v11(policies) is False:
                     sslv_setting = '%s no-tlsv11' % sslv_setting
                 if ConfBuilderHaproxy.tls_v12(policies) is False:
@@ -193,7 +193,7 @@ class ConfBuilderHaproxy(ConfBuilder):
                     else:
                         self.__content_map[section_name].append('bind %s:%s ssl crt %s %s' %
                                                                 (ip, port, cert, sslv_setting))
-            else: 
+            else:
                 for ip in ips:
                     self.__content_map[section_name].append('bind %s:%s' % (ip, port))
 
@@ -210,20 +210,20 @@ class ConfBuilderHaproxy(ConfBuilder):
 
             def_backend = 'backend-%s-%s' % (protocol, port)
             self.__content_map[section_name].append('default_backend %s' % def_backend)
-           
+
             if protocol == 'https':
-                backend_attribute = 'mode http\n  balance roundrobin' 
+                backend_attribute = 'mode http\n  balance roundrobin'
             elif protocol == 'ssl':
-                backend_attribute = 'mode tcp\n  balance roundrobin' 
+                backend_attribute = 'mode tcp\n  balance roundrobin'
             else:
-                backend_attribute = 'mode %s\n  balance roundrobin' % protocol 
+                backend_attribute = 'mode %s\n  balance roundrobin' % protocol
 
             if connection_idle_timeout:
                 backend_attribute = '%s\n  timeout server %ss' % (backend_attribute, connection_idle_timeout)
- 
+
             cookie_name = ConfBuilderHaproxy.get_app_cookie_name(policies)
             cookie_expire = ConfBuilderHaproxy.get_lb_cookie_period(policies)
-            
+
             if (protocol == 'http' or protocol == 'https') and cookie_expire:
                 try:
                     cookie_expire = int(cookie_expire)
@@ -236,7 +236,7 @@ class ConfBuilderHaproxy(ConfBuilder):
                 backend_attribute = '%s\n  appsession %s len %d timeout %dm' % (backend_attribute, cookie_name,
                                                                                 config.appcookie_length(),
                                                                                 config.appcookie_timeout())
-          
+
             # create the empty backend section
             self.__content_map['backend %s' % def_backend] = [backend_attribute]
         else:
@@ -266,10 +266,10 @@ class ConfBuilderHaproxy(ConfBuilder):
             return None
         for p in policies:
             if type(p) is SSLNegotiationPolicy:
-                cipher_string = ":".join(p.ciphers()) 
+                cipher_string = ":".join(p.ciphers())
                 return cipher_string
         return None
-  
+
     @staticmethod
     def ssl_v2(policies):
         return ConfBuilderHaproxy.check_ssl_ver(policies, 'ssl_v2')
@@ -277,11 +277,11 @@ class ConfBuilderHaproxy(ConfBuilder):
     @staticmethod
     def ssl_v3(policies):
         return ConfBuilderHaproxy.check_ssl_ver(policies, 'ssl_v3')
-                    
+
     @staticmethod
     def tls_v1(policies):
         return ConfBuilderHaproxy.check_ssl_ver(policies, 'tls_v1')
-                    
+
     @staticmethod
     def tls_v11(policies):
         return ConfBuilderHaproxy.check_ssl_ver(policies, 'tls_v11')
@@ -308,7 +308,7 @@ class ConfBuilderHaproxy(ConfBuilder):
                 return p.cookie_name()
         return None
 
-    @staticmethod 
+    @staticmethod
     def get_lb_cookie_period(policies):
         if not policies:
             return None
@@ -327,7 +327,7 @@ class ConfBuilderHaproxy(ConfBuilder):
         # remove the backend
         backend_name = self.find_backend_name(section)
         if backend_name is not None:
-            backend = 'backend %s' % backend_name 
+            backend = 'backend %s' % backend_name
             if backend in self.__content_map.iterkeys():
                 backend_conf = self.__content_map.pop(backend)
                 del backend_conf[:]
@@ -342,12 +342,12 @@ class ConfBuilderHaproxy(ConfBuilder):
         (section_name, section) = self.find_frontend(port)
         if section_name is None:
             return self
-        
+
         backend_name = self.find_backend_name(section)
         if backend_name is None:
             return self
 
-        backend = 'backend %s' % backend_name 
+        backend = 'backend %s' % backend_name
         if backend not in self.__content_map.iterkeys():
             raise Exception('no backend is found with name %s' % backend_name)
 
@@ -359,14 +359,15 @@ class ConfBuilderHaproxy(ConfBuilder):
         elif any("appsession " in s for s in backend_conf):
             appcookie_enabled = True
 
-        line = 'server %s %s:%d' % \
-               (section_name.replace('frontend', '').strip(' '), instance['hostname'], instance['port'])
+        line = 'server %s %s:%d' % (section_name.replace('frontend', '').strip(' '),
+                                    instance['hostname'],
+                                    instance['port'])
         if lbcookie_enabled or appcookie_enabled:
             line = line + ' cookie %s' % ConfBuilderHaproxy.encode_str(instance['hostname'])
-     
+
         # backend authentication is requested
         if instance['protocol'] == 'https' or instance['protocol'] == 'ssl':
-            pubkeys = ConfBuilderHaproxy.backend_server_pubkeys(policies) 
+            pubkeys = ConfBuilderHaproxy.backend_server_pubkeys(policies)
             if pubkeys and len(pubkeys) > 0:
                 ca_file = ConfBuilderHaproxy.create_backend_ca_file("ca-frontend-%d" % port, pubkeys)
                 line = line + ' ssl verify required ca-file %s' % ca_file
@@ -391,7 +392,7 @@ class ConfBuilderHaproxy(ConfBuilder):
             f_key.write('\n')
         f_key.close()
         return file_path
-    
+
     @staticmethod
     def encode_str(server):
-        return base64.b64encode(server) 
+        return base64.b64encode(server)
