@@ -7,7 +7,7 @@ Summary:        Configuration tool for the Eucalyptus LB
 
 Group:          Applications/System
 License:        GPLv3
-URL:            http://www.eucalyptus.com
+URL:            https://eucalyptus.cloud/
 Source0:        %{tarball_basedir}.tar.xz
 Source1:        %{name}.tmpfiles
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
