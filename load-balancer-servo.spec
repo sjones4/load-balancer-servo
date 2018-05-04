@@ -1,13 +1,13 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 
 Name:           load-balancer-servo
-Version:        1.4.2
+Version:        1.4.3
 Release:        0%{?build_id:.%build_id}%{?dist}
 Summary:        Configuration tool for the Eucalyptus LB
 
 Group:          Applications/System
 License:        GPLv3
-URL:            http://www.eucalyptus.com
+URL:            https://eucalyptus.cloud/
 Source0:        %{tarball_basedir}.tar.xz
 Source1:        %{name}.tmpfiles
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -107,7 +107,10 @@ fi
 %{_tmpfilesdir}/%{name}.conf
 
 %changelog
-* Mon May 14 2018 Steve Jones <steve.jones@appscale.com> - 1.4.2
+* Mon May  3 2018 Steve Jones <steve.jones@appscale.com> - 1.4.3
+- Version bump (1.4.3)
+
+* Mon Mar 14 2018 Steve Jones <steve.jones@appscale.com> - 1.4.2
 - Version bump (1.4.2)
 
 * Mon May  8 2017 Garrett Holmstrom <gholms@dxc.com> - 1.4.1
