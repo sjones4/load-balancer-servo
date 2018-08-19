@@ -1,7 +1,7 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 
 Name:           load-balancer-servo
-Version:        1.4.3
+Version:        1.5.0
 Release:        0%{?build_id:.%build_id}%{?dist}
 Summary:        Configuration tool for the Eucalyptus LB
 
@@ -20,6 +20,7 @@ BuildRequires:  systemd
 
 Requires:       python%{?__python_ver}
 Requires:       python%{?__python_ver}-boto
+Requires:       python%{?__python_ver}-boto3
 Requires:       python%{?__python_ver}-httplib2
 Requires:       haproxy >= 1.5
 Requires:       sudo
@@ -29,8 +30,6 @@ Requires:       ntpdate
 Requires:       m2crypto
 Requires:       redis
 Requires:       python-redis
-Requires:       java-1.8.0-openjdk
-Requires:       eucalyptus-common-java-libs
 Requires:       python-netaddr
 Requires(pre):  %{_sbindir}/useradd
 Requires(post): chkconfig
@@ -91,6 +90,7 @@ fi
 %doc README.md LICENSE
 %{python_sitelib}/*
 %{_bindir}/load-balancer-servo
+%{_bindir}/load-balancer-servo-workflow
 %{_sysconfdir}/sudoers.d/servo
 %{_initddir}/load-balancer-servo
 %{_libexecdir}/%{name}
@@ -103,14 +103,18 @@ fi
 %{_var}/lib/%{name}/log4j.xml
 %config(noreplace) %{_sysconfdir}/load-balancer-servo/haproxy_template.conf
 %config(noreplace) %{_sysconfdir}/load-balancer-servo/boto.cfg
+%config(noreplace) %{_sysconfdir}/load-balancer-servo/boto3.cfg
 %config(noreplace) %{_sysconfdir}/load-balancer-servo/503.http
 %{_tmpfilesdir}/%{name}.conf
 
 %changelog
-* Mon May  3 2018 Steve Jones <steve.jones@appscale.com> - 1.4.3
+* Sun Aug 19 2018 Steve Jones <steve.jones@appscale.com> - 1.5.0
+- Switch to Python/Boto3 SWF client and remove Java dependencies
+
+* Thu May  3 2018 Steve Jones <steve.jones@appscale.com> - 1.4.3
 - Version bump (1.4.3)
 
-* Mon Mar 14 2018 Steve Jones <steve.jones@appscale.com> - 1.4.2
+* Wed Mar 14 2018 Steve Jones <steve.jones@appscale.com> - 1.4.2
 - Version bump (1.4.2)
 
 * Mon May  8 2017 Garrett Holmstrom <gholms@dxc.com> - 1.4.1
