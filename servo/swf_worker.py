@@ -25,13 +25,9 @@ from fnmatch import fnmatch
 import servo
 
 PIDFILE = os.path.join(config.DEFAULT_PID_ROOT, "worker.pid")
-DIR_LIBRARIES = "/usr/share/eucalyptus"
-CLIENT_CLASS = "com.eucalyptus.simpleworkflow.common.client.WorkflowClientStandalone"
 LOG_DIR = "/var/log/load-balancer-servo"
-LOG_LEVEL = "DEBUG"
+LOG_LEVEL = "INFO"
 SWF_DOMAIN = "LoadbalancingDomain"
-WORKER_JAR_REGEX="eucalyptus-loadbalancing-[0-9]*.jar"
-WORKER_CLASSES = "LoadBalancingVmActivitiesImpl"
 CWD = config.RUN_ROOT
 
 singleton_worker = None
@@ -46,12 +42,6 @@ class SwfWorker(threading.Thread):
         self.running = False
         self.should_terminate = False
         threading.Thread.__init__(self)
-
-    def lookup_worker_jar(self):
-        result = [f for f in listdir(DIR_LIBRARIES) if isfile(join(DIR_LIBRARIES, f)) and fnmatch(f, WORKER_JAR_REGEX)]
-        if len(result) == 1:
-            return join(DIR_LIBRARIES, result[0])
-        return None 
 
     def get_pid(self):
         if os.path.exists(PIDFILE):
@@ -98,7 +88,7 @@ class SwfWorker(threading.Thread):
             servo.log.debug('Existing SWF worker process is found (%d)' % pid)
             self.kill_pid(pid)
         try:
-            # if no process, start a new Java process
+            # if no process, start a new process
             # prepare arguments to the process
             swf_url = config.get_swf_service_url()
             if not swf_url:
@@ -107,11 +97,8 @@ class SwfWorker(threading.Thread):
             instance_id = config.get_servo_id()
             if not instance_id:
                 raise Exception('Instance ID is not found')
-            worker_jar = self.lookup_worker_jar()
-            if not worker_jar:
-                raise Exception('No worker jar is found')
 
-            cmdline = 'java -cp .:%s/* %s --logdir %s --logappender cloud-debug-file --loglevel %s -d %s -e %s --jar %s --classes %s -l %s' % (DIR_LIBRARIES, CLIENT_CLASS, LOG_DIR, LOG_LEVEL, SWF_DOMAIN, swf_url, worker_jar, WORKER_CLASSES, instance_id)
+            cmdline = 'load-balancer-servo-workflow --logdir %s --loglevel %s -e %s -d %s -l %s' % (LOG_DIR, LOG_LEVEL, swf_url, SWF_DOMAIN, instance_id)
             servo.log.debug('Running SWF worker: %s' % cmdline)
             proc = self.execute_with_popen(cmdline)
             pid = proc.pid
@@ -136,7 +123,7 @@ class SwfWorker(threading.Thread):
                 count = 0
                 servo.log.info("Swf worker process is running (%d)" % pid)
      
-        # if instructed, kill the java process
+        # if instructed, kill the process
         if self.should_terminate and proc.poll() is None:
             try:
                 proc.terminate()

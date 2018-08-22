@@ -38,6 +38,7 @@ SERVO_LOG=/var/log/load-balancer-servo/servo.log
 SERVOUSER=servo
 LOGLEVEL=debug
 BOTO_LOGLEVEL=info
+export AWS_CONFIG_FILE=/etc/load-balancer-servo/boto3.cfg
 
 LOCKFILE=/var/lock/subsys/load-balancer-servo
 PREP=/usr/libexec/load-balancer-servo/servo-prep
