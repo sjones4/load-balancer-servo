@@ -24,6 +24,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from distutils.core import setup
+import setuptools
 
 def getVersion():
     try:
@@ -37,12 +38,19 @@ setup (name="Eucalyptus Loadbalancer Servo",
     long_description = "Eucalyptus Loadbalancer Servo",
     author = "Sang-Min Park",
     author_email = "community@eucalyptus.com",
-    license = "GPL v3",
-    url = "http://www.eucalytpus.com",
-    packages = ['servo', 'servo/haproxy', 'servo/ws', 'servo/mon', 'servo/security', 'servo/floppy'],
+    license = "BSD",
+    url = "http://eucalyptus.cloud",
+    packages = ['servo', 'servo/haproxy', 'servo/ws', 'servo/mon', 'servo/security', 'servo/floppy', 'servo/workflow'],
     scripts = ['load-balancer-servo'],
     data_files = [('/etc/load-balancer-servo/',
         ['scripts/haproxy_template.conf',
-         'scripts/boto.cfg', 'scripts/503.http'])],
+         'scripts/boto.cfg',
+         'scripts/boto3.cfg',
+         'scripts/503.http'])],
+    entry_points={
+        'console_scripts': [
+            'load-balancer-servo-workflow=servo.workflow.client:main',
+        ]
+    },
 )
 
