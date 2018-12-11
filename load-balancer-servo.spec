@@ -21,6 +21,7 @@ BuildRequires:  systemd
 Requires:       python%{?__python_ver}
 Requires:       python%{?__python_ver}-boto
 Requires:       python%{?__python_ver}-boto3
+Requires:       python%{?__python_ver}-botocore
 Requires:       python%{?__python_ver}-httplib2
 Requires:       haproxy >= 1.5
 Requires:       sudo
