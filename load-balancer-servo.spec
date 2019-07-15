@@ -52,6 +52,8 @@ rm -rf $RPM_BUILD_ROOT
 
 # Install CLI tools
 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+sed --in-place '1s/python /python2 /' $RPM_BUILD_ROOT/usr/bin/load-balancer-servo
+sed --in-place '1s/python$/python2/'  $RPM_BUILD_ROOT/usr/bin/load-balancer-servo-workflow
 
 #
 # There is no extension on the installed sudoers file for a reason
