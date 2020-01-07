@@ -65,7 +65,7 @@ def is_vpc():
     if not primary_mac or len(primary_mac) <= 0:
         raise Exception("Primary mac address is not found")
 
-    url = "http://169.254.169.254/latest/meta-data/network/interfaces/macs/%s/vpc-id" % primary_mac
+    url = "http://169.254.169.254/latest/meta-data/network/interfaces/macs/%s/vpc-id" % primary_mac.strip()
     vpc_id = query_metadata(url) 
      # check if vpc-id is present, then keep a note of primary mac id 
     if not vpc_id:
