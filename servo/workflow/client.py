@@ -1,16 +1,18 @@
-# Copyright 2018 AppScale Systems, Inc
+# Copyright 2020 AppScale Systems, Inc
 #
 # Use of this source code is governed by a BSD-2-Clause
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/BSD-2-Clause
 import argparse
 import boto3
+import hashlib
 import json
 import logging
 import os
+import re
 import redis
-
 import servo.config as config
+import time
 
 from botocore.client import Config
 from botocore.exceptions import ClientError
@@ -32,7 +34,12 @@ ACTIVITY_LAST_VALUES = {
     'LoadBalancingVmActivities.setLoadBalancer': '',
     'LoadBalancingVmActivities.setPolicy': '',
 }
+ACTIVITY_VALUES_BY_SHA1 = {
+    'LoadBalancingVmActivities.setLoadBalancer': {},
+    'LoadBalancingVmActivities.setPolicy': {},
+}
 ACTIVITY_VERSION = '1.0'
+ACTIVITY_CACHE_SECONDS = 300
 
 
 def build_parser():
@@ -153,14 +160,15 @@ def do_activity_polling(args, swf):
 
 def do_activity(activity, params):
     log_debug('Handling activity %s with params %s', activity, str(params))
-    if activity in ACTIVITY_LAST_VALUES and len(params) > 0:
-        if params[0] != ACTIVITY_LAST_VALUES[activity]:
+    value = params[0] if len(params) > 0 else ACTIVITY_DEFAULT_VALUES[activity]
+    if activity in ACTIVITY_LAST_VALUES:
+        value = activity_value_cache(activity, value)
+        if value != ACTIVITY_LAST_VALUES[activity]:
             log_info('Activity %s value updated', activity)
-            ACTIVITY_LAST_VALUES[activity] = params[0]
-            store_activity_value(ACTIVITY_CHANNELS[activity][4:], params[0])
+            ACTIVITY_LAST_VALUES[activity] = value
+            store_activity_value(ACTIVITY_CHANNELS[activity][4:], value)
     sred = redis.StrictRedis(host='localhost', port=6379)
-    sred.publish(ACTIVITY_CHANNELS[activity],
-                 params[0] if len(params) > 0 else ACTIVITY_DEFAULT_VALUES[activity])
+    sred.publish(ACTIVITY_CHANNELS[activity], value)
     if not len(params):
         return sred.blpop('{}-reply'.format(ACTIVITY_CHANNELS[activity]), 0)[1]
     else:
@@ -171,6 +179,35 @@ def store_activity_value(name, value):
     value_file = os.path.join(config.DEFAULT_PID_ROOT, '{}.xml'.format(name))
     with open(value_file, 'w') as f:
         f.write(value)
+
+
+def activity_value_cache(activity, value):
+    value_cache = ACTIVITY_VALUES_BY_SHA1[activity]
+    value_sha1 = value
+    if len(value) == 40 and re.match('[0-9a-fA-F]{40}', value):
+        log_debug('Using cached value for activity %s with key %s', activity, value)
+        _, value = value_cache[value]
+    else:
+        sha1 = hashlib.sha1()
+        sha1.update(value.encode('utf-8'))
+        value_sha1 = sha1.hexdigest()
+        log_debug('Cached value for activity %s with key %s', activity, value_sha1)
+    time_now = time.time()
+    value_cache[value_sha1] = (time_now, value)
+    cache_maintain(activity, time_now)
+    return value
+
+
+def cache_maintain(activity, time_now):
+    value_cache = ACTIVITY_VALUES_BY_SHA1[activity]
+    stale_keys = set()
+    for key, (timestamp, value) in value_cache.items():
+        if time_now > (timestamp + ACTIVITY_CACHE_SECONDS):
+            stale_keys.add(key)
+    for stale_key in stale_keys:
+        log_debug('Clearing stale cached value for activity %s with key %s',
+                  activity, stale_key)
+        del value_cache[stale_key]
 
 
 def main():
