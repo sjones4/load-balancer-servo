@@ -94,13 +94,15 @@ class ProxyStatistics(object):
                 latency = 0 
             m_map = {}
             m_map["Latency"] = str(latency)
-            m_map["RequestCount"] = str(self.__num_request)
-            m_map["HTTPCode_ELB_4XX"] = str(self.__http_elb_4xx)
-            m_map["HTTPCode_ELB_5XX"] = str(self.__http_elb_5xx)
-            m_map["HTTPCode_Backend_2XX"] = str(self.__http_be_2xx)
-            m_map["HTTPCode_Backend_3XX"] = str(self.__http_be_3xx)
-            m_map["HTTPCode_Backend_4XX"] = str(self.__http_be_4xx)
-            m_map["HTTPCode_Backend_5XX"] = str(self.__http_be_5xx) 
+            # The following will be popluated with a default value of zero so we
+            # omit from the message in that case
+            if self.__num_request: m_map["RequestCount"] = str(self.__num_request)
+            if self.__http_elb_4xx: m_map["HTTPCode_ELB_4XX"] = str(self.__http_elb_4xx)
+            if self.__http_elb_5xx: m_map["HTTPCode_ELB_5XX"] = str(self.__http_elb_5xx)
+            if self.__http_be_2xx: m_map["HTTPCode_Backend_2XX"] = str(self.__http_be_2xx)
+            if self.__http_be_3xx: m_map["HTTPCode_Backend_3XX"] = str(self.__http_be_3xx)
+            if self.__http_be_4xx: m_map["HTTPCode_Backend_4XX"] = str(self.__http_be_4xx)
+            if self.__http_be_5xx: m_map["HTTPCode_Backend_5XX"] = str(self.__http_be_5xx)
             self.clear_all()
             return json.dumps(m_map)
         finally:
